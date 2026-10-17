@@ -8,8 +8,8 @@ Streamlit 웹앱: 서울 연평균기온 분석
 import streamlit as st
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
-# plotly가 없으면 설치 안내 후 실행 중단
 try:
     import plotly.graph_objects as go
 except ImportError:
@@ -20,12 +20,27 @@ except ImportError:
 st.set_page_config(page_title="서울 연평균 기온 분석", layout="wide", page_icon="🌡️")
 
 
+# ---------- 데이터 파일 경로 확인 ----------
+BASE_DIR = Path(__file__).resolve().parent
+CSV_PATH = BASE_DIR / "seoul_temperature.csv"
+
+if not CSV_PATH.exists():
+    st.error("데이터 파일을 찾을 수 없습니다.")
+    st.write(f"앱 파일과 같은 폴더에 **seoul_temperature.csv**가 없습니다.")
+    st.write(f"현재 경로: `{BASE_DIR}`")
+    st.write("**seoul_temperature.csv 파일을 추가한 뒤 다시 실행해 주세요.**")
+    st.stop()
+
+
 # ---------- 1. 데이터 로드 ----------
 @st.cache_data
-def load_data(path: str = "seoul_temperature.csv") -> pd.DataFrame:
+def load_data(path: Path) -> pd.DataFrame:
+    # utf-8 BOM 제거
     df = pd.read_csv(path, encoding="utf-8-sig")
-    # 날짜 값 앞에 탭 문자가 있어 strip 처리
+
+    # 날짜 값 앞의 탭 문자 제거
     df["날짜"] = df["날짜"].str.strip()
+
     df["날짜"] = pd.to_datetime(df["날짜"], format="%Y-%m-%d")
     df["연도"] = df["날짜"].dt.year
 
@@ -57,12 +72,12 @@ def make_annual(df: pd.DataFrame) -> pd.DataFrame:
     return annual
 
 
-df = load_data()
+df = load_data(CSV_PATH)
 annual = make_annual(df)
 
 # ---------- 3. 회귀선 (선형회귀) ----------
 x = annual["연도"].to_numpy(dtype=float)
-y = annual["평균기온(℃)"].to_numpy(dtype=float)
+y = annual["평균기온"].to_numpy(dtype=float)   # ✅ 집계 컬럼명 사용
 slope, intercept = np.polyfit(x, y, 1)
 annual["회귀선"] = slope * annual["연도"] + intercept
 
@@ -110,7 +125,7 @@ with st.sidebar:
             st.metric("연평균 최고기온", f"{mean_max:.2f}")
             st.metric("연평균 최저기온", f"{mean_min:.2f}")
             st.dataframe(
-                sel[["연도", "평균기온(℃)", "최고기온(℃)", "최저기온(℃)"]],
+                sel[["연도", "평균기온", "최고기온", "최저기온"]],
                 use_container_width=True,
             )
 
@@ -124,7 +139,7 @@ fig = go.Figure()
 fig.add_trace(
     go.Scatter(
         x=annual["연도"],
-        y=annual["평균기온(℃)"],
+        y=annual["평균기온"],
         mode="lines+markers",
         name="연평균기온",
         line=dict(color="#1f77b4", width=2),
