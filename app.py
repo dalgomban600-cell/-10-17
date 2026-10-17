@@ -8,7 +8,14 @@ Streamlit 웹앱: 서울 연평균기온 분석
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.graph_objects as go
+
+# plotly가 없으면 설치 안내 후 실행 중단
+try:
+    import plotly.graph_objects as go
+except ImportError:
+    st.error("plotly가 설치되어 있지 않습니다. 터미널에서 다음 명령을 실행해 주세요: `pip install plotly`")
+    st.stop()
+
 
 st.set_page_config(page_title="서울 연평균 기온 분석", layout="wide", page_icon="🌡️")
 
