@@ -1,2 +1,2 @@
-python -m pip install -r requirements.txt.txt
+python -m pip install -r requirements.txt
  pip install plotly
